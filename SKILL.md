@@ -1,17 +1,11 @@
 ---
 name: create-teammate
-description: "Distill a teammate into an AI Skill. Auto-collect Slack/Teams/GitHub data, generate Work Skill + Persona, with continuous evolution."
-argument-hint: "[teammate-name-or-slug]"
-version: "1.0.0"
+description: "Distill a teammate into an AI Skill. Auto-collect Slack/Teams/GitHub data, generate Work Skill + 5-layer Persona, with continuous evolution. Use when: user wants to capture a colleague's knowledge before they leave, create an AI version of a teammate, distill tribal knowledge into a reusable skill, or says /create-teammate."
 user-invocable: true
-allowed-tools: Read, Write, Edit, Bash
-platforms:
-  - claude-code
-  - openclaw
-  - agentskills-compatible
+argument-hint: "[teammate-name-or-slug]"
 ---
 
-> **Language**: This skill auto-detects the user's language from their first message and responds in the same language throughout. Instructions below are in English; the skill will mirror the user's language in all output.
+> **Language**: This skill auto-detects the user's language from their first message and responds in the same language throughout.
 
 # teammate.skill Creator
 
@@ -21,45 +15,68 @@ Activate when the user says any of:
 - `/create-teammate`
 - "Help me create a teammate skill"
 - "I want to distill a teammate"
-- "New teammate"
-- "Make a skill for XX"
+- "New teammate" / "Make a skill for XX"
 
-Enter evolution mode when the user says:
+Enter evolution mode when:
 - "I have new files" / "append" / "add more context"
-- "That's wrong" / "They wouldn't do that" / "They should be"
+- "That's wrong" / "They wouldn't do that"
 - `/update-teammate {slug}`
 
-List all generated teammates when the user says `/list-teammates`.
+List teammates: `/list-teammates`
 
 ---
 
-## Tool Usage Rules
+## Platform Detection & Tool Mapping
 
-This Skill runs in any AgentSkills-compatible environment (Claude Code, OpenClaw, or other agents) with the following tools:
+Detect the runtime environment and use the correct tools:
 
-| Task | Tool |
-|------|------|
-| Read PDF documents | `Read` tool (native PDF support) |
-| Read image screenshots | `Read` tool (native image support) |
-| Read MD/TXT/JSON files | `Read` tool |
-| Slack export JSON | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/slack_parser.py` |
-| Slack auto-collect | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/slack_collector.py` |
-| Teams/Outlook export | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/teams_parser.py` |
-| Gmail .mbox / .eml | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/email_parser.py` |
-| Notion export | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/notion_parser.py` |
-| GitHub PR/review data | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/github_collector.py` |
-| Linear/JIRA export | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/project_tracker_parser.py` |
-| Confluence export | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/confluence_parser.py` |
-| Write/update Skill files | `Write` / `Edit` tool |
-| Version management | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/version_manager.py` |
-| List existing Skills | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/skill_writer.py --action list` |
+| Action | Claude Code | OpenClaw | Other AgentSkills |
+|--------|------------|----------|-------------------|
+| Read files | `Read` tool | `read` tool | `Read` tool |
+| Write files | `Write` tool | `write` tool | `Write` tool |
+| Edit files | `Edit` tool | `edit` tool | `Edit` tool |
+| Run scripts | `Bash` tool | `exec` tool | `Bash` / `exec` |
+| Fetch URLs | `Bash` → curl | `web_fetch` tool | `Bash` → curl |
 
-**Base directory**: Skill files are written to `./teammates/{slug}/` (relative to this project directory).
+### Path Resolution
 
-For platform-specific global install paths:
-- Claude Code: `--base-dir ~/.claude/skills/teammates`
-- OpenClaw: `--base-dir ~/.openclaw/workspace/skills/teammates`
-- Other agents: use your agent's skill directory
+All script/prompt paths use `{baseDir}` — the skill's own directory, auto-resolved by the platform.
+
+- **Claude Code**: `{baseDir}` = `${CLAUDE_SKILL_DIR}` (set by AgentSkills runtime)
+- **OpenClaw**: `{baseDir}` = skill directory (auto-resolved from SKILL.md location)
+- **Other agents**: resolve relative to the SKILL.md parent directory
+
+### Output Directory
+
+Generated teammate files go to `teammates/{slug}/` under the agent's workspace:
+
+| Platform | Default output path |
+|----------|-------------------|
+| Claude Code | `./teammates/{slug}/` (project-local) |
+| OpenClaw | `./teammates/{slug}/` (workspace-local, `~/.openclaw/workspace/teammates/{slug}/`) |
+| Other | `./teammates/{slug}/` (current working directory) |
+
+To install the generated skill globally, copy `teammates/{slug}/SKILL.md` to the platform's skill directory.
+
+---
+
+## Tool Reference
+
+| Task | Command |
+|------|---------|
+| Parse Slack export | `python3 {baseDir}/tools/slack_parser.py --file {path} --target "{name}" --output /tmp/slack_out.txt` |
+| Slack auto-collect | `python3 {baseDir}/tools/slack_collector.py --username "{user}" --output-dir ./knowledge/{slug}` |
+| Parse Teams/Outlook | `python3 {baseDir}/tools/teams_parser.py --file {path} --target "{name}" --output /tmp/teams_out.txt` |
+| Parse Gmail .mbox | `python3 {baseDir}/tools/email_parser.py --file {path} --target "{name}" --output /tmp/email_out.txt` |
+| Parse Notion export | `python3 {baseDir}/tools/notion_parser.py --dir {path} --target "{name}" --output /tmp/notion_out.txt` |
+| GitHub auto-collect | `python3 {baseDir}/tools/github_collector.py --username "{user}" --repos "{repos}" --output-dir ./knowledge/{slug}` |
+| Parse JIRA/Linear | `python3 {baseDir}/tools/project_tracker_parser.py --file {path} --target "{name}" --output /tmp/tracker_out.txt` |
+| Parse Confluence | `python3 {baseDir}/tools/confluence_parser.py --file {path} --target "{name}" --output /tmp/confluence_out.txt` |
+| Version backup | `python3 {baseDir}/tools/version_manager.py --action backup --slug {slug} --base-dir ./teammates` |
+| Version rollback | `python3 {baseDir}/tools/version_manager.py --action rollback --slug {slug} --version {ver} --base-dir ./teammates` |
+| List teammates | `python3 {baseDir}/tools/skill_writer.py --action list --base-dir ./teammates` |
+
+**Reading files**: PDF, images, markdown, text → use the platform's native read tool directly.
 
 ---
 
@@ -67,77 +84,54 @@ For platform-specific global install paths:
 
 ### Step 1: Basic Info Collection (3 questions)
 
-Refer to `${CLAUDE_SKILL_DIR}/prompts/intake.md` for the question sequence. Only ask 3 questions:
+Read `{baseDir}/prompts/intake.md` for the full question sequence. Only ask 3 questions:
 
-1. **Name / Alias** (required)
-   - Example: `alex-chen` or `Big Mike`
-2. **Role info** (one sentence: company, level, title, any detail — all optional)
-   - Example: `Google L5 backend engineer` or `Stripe senior frontend` or `Series B startup, lead designer`
-3. **Personality profile** (one sentence: MBTI, traits, culture, your impression — all optional)
-   - Example: `INTJ, perfectionist, very Google-style, gives brutal CR feedback but is usually right`
+1. **Name / Alias** (required) — e.g. `alex-chen` or `Big Mike`
+2. **Role info** (optional, one sentence) — e.g. `Google L5 backend engineer`
+3. **Personality profile** (optional, one sentence) — e.g. `INTJ, perfectionist, Google-style, brutal CR feedback`
 
-Everything except the name can be skipped. Summarize and confirm before moving on.
+Everything except name can be skipped. Summarize and confirm before proceeding.
 
 ### Step 2: Source Material Import
 
-Ask the user how they'd like to provide materials:
+Present options to the user:
 
 ```
 How would you like to provide source materials?
 
-  [A] Slack Auto-Collect (recommended)
-      Enter their Slack username — auto-pull messages, threads, reactions
+  [A] Slack Auto-Collect — enter their Slack username, auto-pull messages
+  [B] GitHub Auto-Collect — enter their GitHub handle, auto-pull PRs/reviews
+  [C] Upload Files — Slack JSON / Gmail .mbox / Notion / Confluence / PDF / images / JIRA / Linear
+  [D] Paste Text — copy-paste meeting notes, chat logs, emails
+  [E] Provide Links — Notion pages, Confluence docs, Google Docs
 
-  [B] GitHub Auto-Collect
-      Enter their GitHub handle — auto-pull PRs, reviews, comments, commits
-
-  [C] Upload Files
-      Slack export JSON / Gmail .mbox / Notion export / Confluence pages /
-      PDF / images / Markdown / JIRA CSV / Linear export
-
-  [D] Paste Text
-      Copy-paste directly — meeting notes, chat logs, emails, anything
-
-  [E] Provide Links
-      Notion pages, Confluence docs, Google Docs (via share link)
-
-Mix and match, or skip entirely (generate from manual info only).
+Mix and match, or skip entirely.
 ```
 
 #### Option A: Slack Auto-Collect
 
 First-time setup:
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/tools/slack_collector.py --setup
+python3 {baseDir}/tools/slack_collector.py --setup
 ```
 
-After setup:
+Collect data:
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/tools/slack_collector.py \
+python3 {baseDir}/tools/slack_collector.py \
   --username "{slack_username}" \
   --output-dir ./knowledge/{slug} \
   --msg-limit 1000 \
   --channel-limit 20
 ```
 
-Auto-collected content:
-- All messages sent by them in shared channels (system messages filtered)
-- Thread replies and reactions
-- Pinned messages and bookmarks they created
+Then read the output files: `knowledge/{slug}/messages.txt`, `threads.txt`, `collection_summary.json`.
 
-After collection, `Read` the output files:
-- `knowledge/{slug}/messages.txt` → messages
-- `knowledge/{slug}/threads.txt` → thread conversations
-- `knowledge/{slug}/collection_summary.json` → collection summary
-
-If collection fails (insufficient permissions / bot not in channels), inform user to:
-1. Add the Slack App to relevant channels
-2. Or switch to Option C (upload Slack export)
+If collection fails, suggest adding the Slack App to channels or switching to Option C.
 
 #### Option B: GitHub Auto-Collect
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/tools/github_collector.py \
+python3 {baseDir}/tools/github_collector.py \
   --username "{github_handle}" \
   --repos "{repo1,repo2}" \
   --output-dir ./knowledge/{slug} \
@@ -145,97 +139,56 @@ python3 ${CLAUDE_SKILL_DIR}/tools/github_collector.py \
   --review-limit 100
 ```
 
-Auto-collected content:
-- PR descriptions and commit messages they authored
-- Code review comments they left on others' PRs
-- Issue comments and discussions
-- README/doc contributions
-
-After collection, `Read`:
-- `knowledge/{slug}/prs.txt` → PR descriptions + commit messages
-- `knowledge/{slug}/reviews.txt` → code review comments
-- `knowledge/{slug}/issues.txt` → issue activity
+Then read: `knowledge/{slug}/prs.txt`, `reviews.txt`, `issues.txt`.
 
 #### Option C: Upload Files
 
-- **PDF / Images**: `Read` tool directly
-- **Slack export JSON**:
-  ```bash
-  python3 ${CLAUDE_SKILL_DIR}/tools/slack_parser.py --file {path} --target "{name}" --output /tmp/slack_out.txt
-  ```
-- **Gmail .mbox / .eml**:
-  ```bash
-  python3 ${CLAUDE_SKILL_DIR}/tools/email_parser.py --file {path} --target "{name}" --output /tmp/email_out.txt
-  ```
-- **Notion export (HTML/MD)**:
-  ```bash
-  python3 ${CLAUDE_SKILL_DIR}/tools/notion_parser.py --dir {path} --target "{name}" --output /tmp/notion_out.txt
-  ```
-- **Confluence export**:
-  ```bash
-  python3 ${CLAUDE_SKILL_DIR}/tools/confluence_parser.py --file {path} --target "{name}" --output /tmp/confluence_out.txt
-  ```
-- **JIRA CSV / Linear export**:
-  ```bash
-  python3 ${CLAUDE_SKILL_DIR}/tools/project_tracker_parser.py --file {path} --target "{name}" --output /tmp/tracker_out.txt
-  ```
-- **Markdown / TXT**: `Read` tool directly
+Use the tool reference table above. For each file type, run the appropriate parser. PDF/images/markdown → read directly with platform read tool.
 
 #### Option D: Paste Text
 
-User-pasted content is used directly as text material. No tools needed.
+Use pasted content directly as source material. No tools needed.
 
 #### Option E: Provide Links
 
-When the user provides URLs, attempt to fetch content:
-- Notion public pages → fetch and parse
-- Google Docs (shared) → fetch and parse
-- Confluence (if auth configured) → fetch via API
-- Other URLs → attempt web fetch, fall back to asking for export
+- **OpenClaw**: use `web_fetch` tool to retrieve page content
+- **Claude Code / Other**: use `Bash` → `curl` or browser tool
 
-If the user says "no files" or "skip", generate Skill from Step 1 manual info only.
+If user says "skip", generate from Step 1 info only.
 
 ### Step 3: Analyze Source Material
 
-Combine all collected materials and user-provided info, analyze along two tracks:
+Run dual-track analysis on all collected materials:
 
-**Track A (Work Skill)**:
-- Refer to `${CLAUDE_SKILL_DIR}/prompts/work_analyzer.md` for extraction dimensions
-- Extract: responsible systems, technical standards, workflow, output preferences, experience
-- Emphasize different aspects by role type (backend/frontend/ML/product/design/data/DevOps)
+**Track A (Work Skill)**: Read `{baseDir}/prompts/work_analyzer.md` for extraction dimensions. Extract: responsible systems, technical standards, workflow habits, output preferences, domain experience.
 
-**Track B (Persona)**:
-- Refer to `${CLAUDE_SKILL_DIR}/prompts/persona_analyzer.md` for extraction dimensions
-- Translate user-provided tags into concrete behavior rules (see tag translation table)
-- Extract from materials: communication style, decision patterns, interpersonal behavior
+**Track B (Persona)**: Read `{baseDir}/prompts/persona_analyzer.md` for extraction dimensions. Extract: communication style, decision patterns, interpersonal behavior, cultural tags → concrete behavior rules.
 
 ### Step 4: Generate and Preview
 
-Use `${CLAUDE_SKILL_DIR}/prompts/work_builder.md` to generate Work Skill content.
-Use `${CLAUDE_SKILL_DIR}/prompts/persona_builder.md` to generate Persona content (5-layer structure).
+Read `{baseDir}/prompts/work_builder.md` to generate Work Skill content.
+Read `{baseDir}/prompts/persona_builder.md` to generate Persona content (5-layer structure).
 
-Show the user a summary (5-8 lines each):
+Show summary (5-8 lines each) and ask for confirmation:
 ```
 Work Skill Summary:
   - Responsible for: {xxx}
   - Tech stack: {xxx}
   - CR focus: {xxx}
-  ...
 
 Persona Summary:
   - Core personality: {xxx}
   - Communication style: {xxx}
   - Decision pattern: {xxx}
-  ...
 
-Confirm generation? Or need adjustments?
+Confirm? Or need adjustments?
 ```
 
 ### Step 5: Write Files
 
-After user confirmation, execute:
+After confirmation, create the teammate:
 
-**1. Create directory structure** (Bash):
+**1. Create directories:**
 ```bash
 mkdir -p teammates/{slug}/versions
 mkdir -p teammates/{slug}/knowledge/docs
@@ -243,14 +196,11 @@ mkdir -p teammates/{slug}/knowledge/messages
 mkdir -p teammates/{slug}/knowledge/emails
 ```
 
-**2. Write work.md** (Write tool):
-Path: `teammates/{slug}/work.md`
+**2. Write `teammates/{slug}/work.md`** — full work skill content
 
-**3. Write persona.md** (Write tool):
-Path: `teammates/{slug}/persona.md`
+**3. Write `teammates/{slug}/persona.md`** — full persona content (5-layer)
 
-**4. Write meta.json** (Write tool):
-Path: `teammates/{slug}/meta.json`
+**4. Write `teammates/{slug}/meta.json`:**
 ```json
 {
   "name": "{name}",
@@ -258,25 +208,15 @@ Path: `teammates/{slug}/meta.json`
   "created_at": "{ISO_timestamp}",
   "updated_at": "{ISO_timestamp}",
   "version": "v1",
-  "profile": {
-    "company": "{company}",
-    "level": "{level}",
-    "role": "{role}",
-    "mbti": "{mbti}"
-  },
-  "tags": {
-    "personality": [...],
-    "culture": [...]
-  },
-  "impression": "{impression}",
-  "knowledge_sources": [...],
+  "profile": { "company": "", "level": "", "role": "", "mbti": "" },
+  "tags": { "personality": [], "culture": [] },
+  "impression": "",
+  "knowledge_sources": [],
   "corrections_count": 0
 }
 ```
 
-**5. Generate full SKILL.md** (Write tool):
-Path: `teammates/{slug}/SKILL.md`
-
+**5. Write `teammates/{slug}/SKILL.md`:**
 ```markdown
 ---
 name: teammate-{slug}
@@ -286,7 +226,7 @@ user-invocable: true
 
 # {name}
 
-{company} {level} {role}{append details if available}
+{company} {level} {role}
 
 ---
 
@@ -305,68 +245,56 @@ user-invocable: true
 ## Execution Rules
 
 1. PART B decides first: what attitude to take on this task?
-2. PART A executes: use your technical skills to complete the task
+2. PART A executes: use technical skills to complete the task
 3. Always maintain PART B's communication style in output
-4. PART B Layer 0 rules have the highest priority and must never be violated
+4. PART B Layer 0 rules have highest priority — never violate
 ```
 
-Inform user:
+**6. Confirm to user:**
 ```
 ✅ Teammate Skill created!
 
 Location: teammates/{slug}/
-Commands: /{slug} (full version)
-          /{slug}-work (work capabilities only)
-          /{slug}-persona (persona only)
+Commands: /{slug} (full) | /{slug}-work (work only) | /{slug}-persona (persona only)
 
-If something feels off, just say "they wouldn't do that" and I'll update it.
+Something feels off? Say "they wouldn't do that" and I'll update it.
 ```
 
 ---
 
 ## Evolution Mode: Append Files
 
-When user provides new files or text:
+When user provides new materials:
 
-1. Read new content using Step 2 methods
-2. `Read` existing `teammates/{slug}/work.md` and `persona.md`
-3. Refer to `${CLAUDE_SKILL_DIR}/prompts/merger.md` for incremental analysis
-4. Archive current version:
+1. Parse new content using Step 2 methods
+2. Read existing `teammates/{slug}/work.md` and `persona.md`
+3. Read `{baseDir}/prompts/merger.md` for incremental analysis rules
+4. Backup current version:
    ```bash
-   python3 ${CLAUDE_SKILL_DIR}/tools/version_manager.py --action backup --slug {slug} --base-dir ./teammates
+   python3 {baseDir}/tools/version_manager.py --action backup --slug {slug} --base-dir ./teammates
    ```
-5. Use `Edit` tool to append incremental content
-6. Regenerate `SKILL.md` (merge latest work.md + persona.md)
-7. Update `meta.json` version and updated_at
+5. Edit files with incremental updates
+6. Regenerate `teammates/{slug}/SKILL.md`
+7. Update `meta.json` version and timestamp
 
 ---
 
 ## Evolution Mode: Conversation Correction
 
-When user expresses "that's wrong" / "they wouldn't do that":
+When user says "that's wrong" / "they wouldn't do that":
 
-1. Refer to `${CLAUDE_SKILL_DIR}/prompts/correction_handler.md`
-2. Determine if it belongs to Work or Persona
+1. Read `{baseDir}/prompts/correction_handler.md`
+2. Determine if correction applies to Work or Persona
 3. Generate correction record
-4. Use `Edit` to append to `## Correction Log` section
-5. Regenerate `SKILL.md`
+4. Append to `## Correction Log` section
+5. Regenerate `teammates/{slug}/SKILL.md`
 
 ---
 
 ## Management Commands
 
-`/list-teammates`:
-```bash
-python3 ${CLAUDE_SKILL_DIR}/tools/skill_writer.py --action list --base-dir ./teammates
-```
-
-`/teammate-rollback {slug} {version}`:
-```bash
-python3 ${CLAUDE_SKILL_DIR}/tools/version_manager.py --action rollback --slug {slug} --version {version} --base-dir ./teammates
-```
-
-`/delete-teammate {slug}`:
-After confirmation:
-```bash
-rm -rf teammates/{slug}
-```
+| Command | Action |
+|---------|--------|
+| `/list-teammates` | `python3 {baseDir}/tools/skill_writer.py --action list --base-dir ./teammates` |
+| `/teammate-rollback {slug} {ver}` | `python3 {baseDir}/tools/version_manager.py --action rollback --slug {slug} --version {ver} --base-dir ./teammates` |
+| `/delete-teammate {slug}` | Confirm, then `rm -rf teammates/{slug}` |

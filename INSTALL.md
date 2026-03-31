@@ -1,180 +1,220 @@
-# teammate.skill — Detailed Installation Guide
+# teammate.skill — Installation & Setup Guide
 
-## Supported Platforms
+## Quick Start (30 seconds, no dependencies)
 
-| Platform | Type | Install Path |
-|----------|------|-------------|
-| [Claude Code](https://claude.ai/code) | Anthropic CLI | `.claude/skills/create-teammate` |
-| [OpenClaw](https://openclaw.ai) 🦞 | Open-source personal AI (25+ channels, voice, canvas, cron) | `~/.openclaw/workspace/skills/create-teammate` |
-| [MyClaw.ai](https://myclaw.ai) | Managed OpenClaw hosting (one-click, always-on) | Same as OpenClaw (pre-configured) |
-| Other agents | Any AgentSkills-compatible agent | Your agent's skill directory |
+### 🦞 OpenClaw
 
----
+```bash
+# Option A: ClawHub (recommended)
+openclaw skills install create-teammate
 
-## Quick Start (No Dependencies)
+# Option B: Git
+git clone https://github.com/LeoYeAI/teammate-skill ~/.openclaw/workspace/skills/create-teammate
+```
 
-The simplest setup requires nothing — just install the skill and start creating teammates from manual descriptions.
+Start a new session (`/new`), then type `/create-teammate`.
+
+> **MyClaw.ai users**: SSH into your instance or use the web terminal. Same commands.
 
 ### Claude Code
 
 ```bash
-# Per-project (at git repo root)
+# Per-project (at your git repo root)
 mkdir -p .claude/skills
 git clone https://github.com/LeoYeAI/teammate-skill .claude/skills/create-teammate
 
-# Global (all projects)
+# Or global (all projects)
 git clone https://github.com/LeoYeAI/teammate-skill ~/.claude/skills/create-teammate
 ```
 
-### OpenClaw
+Then type `/create-teammate`.
 
-```bash
-git clone https://github.com/LeoYeAI/teammate-skill ~/.openclaw/workspace/skills/create-teammate
-```
+### Other AgentSkills Agents
 
-### Other AgentSkills-Compatible Agents
-
-Clone into your agent's skill directory. The skill follows the [AgentSkills](https://agentskills.io) standard — any compatible agent will auto-detect `SKILL.md`.
-
-Then type `/create-teammate` in your agent.
+Clone into your agent's skill directory. The entry point is `SKILL.md` with standard [AgentSkills](https://agentskills.io) frontmatter.
 
 ---
 
-## Optional: Data Source Integrations
+## Verify Installation
+
+**OpenClaw:**
+```bash
+openclaw skills list          # Should show "create-teammate"
+```
+
+**Claude Code:**
+```bash
+# In Claude Code, type:
+/create-teammate              # Should trigger the skill
+```
+
+---
+
+## Optional: Auto-Collector Setup
+
+The basic skill works with zero dependencies — you can create teammates from descriptions and manually uploaded files. The auto-collectors below are optional power features.
+
+### Python Dependencies
+
+```bash
+pip3 install -r requirements.txt
+```
+
+This installs `slack_sdk>=3.0`. All other parsers use Python stdlib only.
+
+---
 
 ### Slack Auto-Collector
 
-Automatically pulls messages and threads from a Slack workspace.
+Pulls messages, threads, and reactions automatically via API.
 
-**1. Create a Slack App**
+**Step 1: Create a Slack App**
 
-Go to [api.slack.com/apps](https://api.slack.com/apps) → Create New App → From scratch.
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → From scratch
+2. Name it anything (e.g. "Teammate Collector")
+3. Select your workspace
 
-**2. Add Bot Token Scopes**
+**Step 2: Add Bot Token Scopes**
 
-Under "OAuth & Permissions", add:
-- `channels:history` — read public channel messages
-- `channels:read` — list channels
-- `users:read` — resolve user names
-- `groups:history` (optional) — read private channels
-- `search:read` (optional) — search messages
+Go to **OAuth & Permissions** → **Bot Token Scopes** and add:
 
-**3. Install to Workspace**
+| Scope | Purpose |
+|-------|---------|
+| `channels:history` | Read public channel messages |
+| `channels:read` | List channels |
+| `users:read` | Resolve usernames to display names |
+| `groups:history` | *(optional)* Read private channels |
+| `search:read` | *(optional)* Search messages |
 
-Click "Install to Workspace" and authorize.
+**Step 3: Install & Copy Token**
 
-**4. Copy Bot Token**
+1. Click **Install to Workspace** → Authorize
+2. Copy the **Bot User OAuth Token** (`xoxb-...`)
 
-Copy the `xoxb-...` token from "OAuth & Permissions".
-
-**5. Configure**
+**Step 4: Configure**
 
 ```bash
 python3 tools/slack_collector.py --setup
+# Paste your xoxb-... token when prompted
+# Config saved to ~/.teammate-skill/slack_config.json
 ```
 
-Paste your token when prompted. Config is saved to `~/.teammate-skill/slack_config.json`.
+**Step 5: Add Bot to Channels**
 
-**6. Add Bot to Channels**
+In Slack, invite the bot to channels you want to collect from:
+```
+/invite @YourBotName
+```
 
-In Slack, add the bot to channels you want to collect from:
-`/invite @YourBotName` in each channel.
-
-**7. Collect**
+**Step 6: Collect**
 
 ```bash
-python3 tools/slack_collector.py --username "alex.chen" --output-dir ./knowledge/alex
+python3 tools/slack_collector.py \
+  --username "alex.chen" \
+  --output-dir ./knowledge/alex-chen \
+  --msg-limit 1000 \
+  --channel-limit 20
 ```
+
+Output files:
+- `knowledge/alex-chen/messages.txt` — all messages
+- `knowledge/alex-chen/threads.txt` — thread conversations
+- `knowledge/alex-chen/collection_summary.json` — stats
 
 ---
 
 ### GitHub Collector
 
-Collects PRs, code reviews, and issue comments.
+Pulls PRs, code reviews, commit messages, and issue comments.
 
-**1. Create a Personal Access Token**
+**Step 1: Create a Personal Access Token**
 
-Go to [github.com/settings/tokens](https://github.com/settings/tokens) → Generate new token (classic).
+1. Go to [github.com/settings/tokens](https://github.com/settings/tokens) → **Generate new token (classic)**
+2. Select scope: `repo` (private repos) or `public_repo` (public only)
 
-Scopes needed:
-- `repo` (for private repos) or `public_repo` (for public only)
-
-**2. Set Token**
+**Step 2: Set Token**
 
 ```bash
 export GITHUB_TOKEN="ghp_..."
 ```
 
-Or pass directly:
-```bash
-python3 tools/github_collector.py --username "alexchen" --repos "stripe/payments-core" --token "ghp_..."
-```
-
-**3. Collect**
+**Step 3: Collect**
 
 ```bash
-# From specific repos
-python3 tools/github_collector.py --username "alexchen" --repos "org/repo1,org/repo2" --output-dir ./knowledge/alex
+# Specific repos
+python3 tools/github_collector.py \
+  --username "alexchen" \
+  --repos "stripe/payments-core,stripe/api-gateway" \
+  --output-dir ./knowledge/alex-chen \
+  --pr-limit 50 \
+  --review-limit 100
 
-# From all repos in an org
-python3 tools/github_collector.py --username "alexchen" --org "stripe" --output-dir ./knowledge/alex
+# All repos in an org
+python3 tools/github_collector.py \
+  --username "alexchen" \
+  --org "stripe" \
+  --output-dir ./knowledge/alex-chen
 ```
+
+Output files:
+- `knowledge/alex-chen/prs.txt` — PR descriptions + commits
+- `knowledge/alex-chen/reviews.txt` — code review comments
+- `knowledge/alex-chen/issues.txt` — issue activity
 
 ---
 
 ### Gmail / Email
 
-No setup needed — just export and parse.
+No API setup needed — just export and parse.
 
-**Export from Gmail:**
-1. Go to [takeout.google.com](https://takeout.google.com)
-2. Select only "Mail"
-3. Download the `.mbox` file
+**Export:**
+1. [takeout.google.com](https://takeout.google.com) → select **Mail** only → download `.mbox`
 
 **Parse:**
 ```bash
-python3 tools/email_parser.py --file ~/Downloads/All\ mail.mbox --target "alex@company.com" --output ./knowledge/alex/emails.txt
+python3 tools/email_parser.py \
+  --file ~/Downloads/All\ mail.mbox \
+  --target "alex@company.com" \
+  --output ./knowledge/alex-chen/emails.txt
 ```
 
 ---
 
 ### Microsoft Teams
 
-**Export chat history:**
-1. In Teams, open the chat/channel
-2. Use the Teams admin export tool or compliance export
-3. Save as JSON
+**Export** via Teams admin or compliance export → save as JSON.
 
-**Parse:**
 ```bash
-python3 tools/teams_parser.py --file teams_export.json --target "Alex Chen" --output ./knowledge/alex/teams.txt
+python3 tools/teams_parser.py \
+  --file teams_export.json \
+  --target "Alex Chen" \
+  --output ./knowledge/alex-chen/teams.txt
 ```
 
 ---
 
 ### Notion
 
-**Export from Notion:**
-1. Go to Settings → Workspace → Export all workspace content
-2. Choose "Markdown & CSV" or "HTML"
-3. Download and unzip
+**Export:** Settings → Workspace → Export → Markdown & CSV or HTML → unzip.
 
-**Parse:**
 ```bash
-python3 tools/notion_parser.py --dir ~/Downloads/notion_export/ --target "Alex" --output ./knowledge/alex/notion.txt
+python3 tools/notion_parser.py \
+  --dir ~/Downloads/notion_export/ \
+  --target "Alex" \
+  --output ./knowledge/alex-chen/notion.txt
 ```
 
 ---
 
 ### Confluence
 
-**Export from Confluence:**
-1. Space Settings → Export Space → HTML
-2. Download the zip
+**Export:** Space Settings → Export Space → HTML → download zip.
 
-**Parse:**
 ```bash
-python3 tools/confluence_parser.py --file confluence_export.zip --target "Alex Chen" --output ./knowledge/alex/confluence.txt
+python3 tools/confluence_parser.py \
+  --file confluence_export.zip \
+  --target "Alex Chen" \
+  --output ./knowledge/alex-chen/confluence.txt
 ```
 
 ---
@@ -186,41 +226,43 @@ python3 tools/confluence_parser.py --file confluence_export.zip --target "Alex C
 
 ```bash
 # JIRA
-python3 tools/project_tracker_parser.py --file jira_issues.csv --target "Alex Chen" --output ./knowledge/alex/jira.txt
+python3 tools/project_tracker_parser.py \
+  --file jira_issues.csv \
+  --target "Alex Chen" \
+  --output ./knowledge/alex-chen/jira.txt
 
 # Linear
-python3 tools/project_tracker_parser.py --file linear_export.json --target "alex" --output ./knowledge/alex/linear.txt
+python3 tools/project_tracker_parser.py \
+  --file linear_export.json \
+  --target "alex" \
+  --output ./knowledge/alex-chen/linear.txt
 ```
-
----
-
-## Python Dependencies
-
-Only needed if using auto-collectors:
-
-```bash
-pip3 install -r requirements.txt
-```
-
-Contents of `requirements.txt`:
-- `slack_sdk>=3.0` — Slack API (for auto-collector only)
-- No other hard dependencies — all parsers use Python stdlib
 
 ---
 
 ## Troubleshooting
 
-### Slack: "not_in_channel" error
-→ Add the bot to the channel: `/invite @YourBotName`
+| Error | Fix |
+|-------|-----|
+| Slack: `not_in_channel` | `/invite @YourBotName` in the channel |
+| Slack: `missing_scope` | Add scope in Slack App settings → reinstall to workspace |
+| GitHub: `403 rate limit` | Set `GITHUB_TOKEN` (5000 req/hr vs 60/hr unauthenticated) |
+| Notion export empty | Export full workspace, not single page |
+| Parser finds 0 messages | Check `--target` name — match is case-insensitive and partial |
+| OpenClaw: skill not showing | Run `/new` to start a fresh session, or `openclaw gateway restart` |
+| Claude Code: skill not triggering | Verify skill is in `.claude/skills/` and directory contains `SKILL.md` |
 
-### Slack: "missing_scope" error
-→ Add the required scope in your Slack App settings, then reinstall to workspace
+---
 
-### GitHub: "403 rate limit" error
-→ Set `GITHUB_TOKEN` environment variable for authenticated requests (5000/hour vs 60/hour)
+## Updating
 
-### Notion export is empty
-→ Make sure you're exporting the workspace, not just a single page. Check that the target user has pages in the workspace.
+```bash
+# OpenClaw (ClawHub)
+openclaw skills update create-teammate
 
-### Parser finds 0 messages for target
-→ Check the exact name/username. Use `--target` with the display name as it appears in the platform. The match is case-insensitive and partial.
+# Git install (both platforms)
+cd <your-skill-directory>/create-teammate
+git pull
+```
+
+Start a new session after updating to pick up changes.

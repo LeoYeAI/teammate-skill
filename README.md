@@ -7,75 +7,79 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://python.org)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-blueviolet)](https://claude.ai/code)
-[![OpenClaw](https://img.shields.io/badge/OpenClaw-Skill-orange)](https://openclaw.ai)
+[![OpenClaw](https://img.shields.io/badge/🦞%20OpenClaw-Skill-orange)](https://github.com/openclaw/openclaw)
 [![AgentSkills](https://img.shields.io/badge/AgentSkills-Standard-green)](https://agentskills.io)
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Русский](README.ru.md) | [日本語](README.ja.md) | [Italiano](README.it.md) | [Español](README.es.md)
 
 <br>
 
-Your teammate quit, leaving behind a mountain of unmaintained docs?<br>
-Your senior engineer left, taking all the tribal knowledge with them?<br>
-Your mentor moved on, and three years of context vanished overnight?<br>
-Your co-founder pivoted to a new role, and the handoff doc is two pages?<br>
+Your teammate quit and three years of tribal knowledge walked out the door.<br>
+Your senior engineer left — no handoff doc, no runbook, just silence.<br>
+Your co-founder pivoted, taking every unwritten decision with them.
 
-**Turn departures into durable Skills. Welcome to knowledge immortality.**
+**Feed in their Slack messages, GitHub PRs, emails, docs, and your own description —<br>
+get an AI Skill that actually works like them.**
+
+Writes code in their style. Reviews PRs with their standards. Answers questions in their voice.
 
 <br>
 
-Provide source materials (Slack messages, GitHub PRs, emails, Notion docs, meeting notes)<br>
-plus your description of who they are<br>
-and get an **AI Skill that actually works like them**<br>
-— writes code in their style, reviews PRs with their standards, answers questions with their voice
-
-[Supported Sources](#supported-data-sources) · [Install](#install) · [Usage](#usage) · [Demo](#demo) · [Detailed Install](INSTALL.md)
+[How It Works](#how-it-works) · [Install](#install) · [Data Sources](#supported-data-sources) · [Demo](#demo) · [Detailed Setup](INSTALL.md)
 
 </div>
 
 ---
 
-## Supported Data Sources
+## How It Works
 
-> Beta — more integrations coming soon!
+```
+You describe your teammate (3 questions)
+          ↓
+Provide source materials (Slack, GitHub, email, docs — or skip)
+          ↓
+Dual-track AI analysis
+  ├── Track A: Work Skill (systems, standards, workflows, review style)
+  └── Track B: Persona (5-layer personality model)
+          ↓
+Generated SKILL.md — invoke anytime with /{slug}
+          ↓
+Evolve over time (append new data, correct mistakes, auto-version)
+```
 
-| Source | Messages | Docs / Wiki | Code & PRs | Notes |
-|--------|:--------:|:-----------:|:----------:|-------|
-| Slack (auto-collect) | ✅ API | — | — | Enter username, fully automatic |
-| GitHub (auto-collect) | — | — | ✅ API | PRs, reviews, issue comments |
-| Slack export JSON | ✅ | — | — | Manual upload |
-| Gmail `.mbox` / `.eml` | ✅ | — | — | Manual upload |
-| Teams / Outlook export | ✅ | — | — | Manual upload |
-| Notion export | — | ✅ | — | HTML or Markdown export |
-| Confluence export | — | ✅ | — | HTML export or zip |
-| JIRA CSV / Linear JSON | — | — | ✅ | Issue tracking exports |
-| PDF | — | ✅ | — | Manual upload |
-| Images / Screenshots | ✅ | — | — | Manual upload |
-| Markdown / Text | ✅ | ✅ | — | Manual upload |
-| Paste text directly | ✅ | — | — | Copy-paste anything |
+The generated skill has two parts that work together:
 
----
+| Part | What it captures |
+|------|-----------------|
+| **Part A — Work Skill** | Systems owned · tech standards · code review focus · workflows · tribal knowledge |
+| **Part B — Persona** | 5-layer model: hard rules → identity → expression → decision patterns → interpersonal style |
 
-## Platforms
-
-### [Claude Code](https://claude.ai/code)
-Anthropic's official CLI for Claude. Install this skill into `.claude/skills/` and invoke with `/create-teammate`.
-
-### 🦞 [OpenClaw](https://openclaw.ai)
-Open-source personal AI assistant by [@steipete](https://github.com/steipete). Runs on your own devices, answers on 25+ channels (WhatsApp, Telegram, Slack, Discord, Teams, Signal, iMessage, and more). Local-first gateway, persistent memory, voice, canvas, cron jobs, and a growing skills ecosystem. [GitHub](https://github.com/openclaw/openclaw)
-
-### 🏆 [MyClaw.ai](https://myclaw.ai)
-Managed hosting for OpenClaw — skip Docker, servers, and configs. One-click deploy, always-on, automatic updates, daily backups. Your OpenClaw instance live in minutes. Perfect if you want teammate.skill running 24/7 without self-hosting.
+When invoked: **Persona decides the attitude → Work Skill executes → output in their voice**.
 
 ---
 
 ## Install
 
-This skill follows the [AgentSkills](https://agentskills.io) open standard and works with any compatible agent.
+### 🦞 OpenClaw
+
+**Option A — ClawHub (recommended):**
+```bash
+openclaw skills install create-teammate
+```
+
+**Option B — Git:**
+```bash
+git clone https://github.com/LeoYeAI/teammate-skill ~/.openclaw/workspace/skills/create-teammate
+```
+
+Then start a new session (`/new`) and type `/create-teammate`.
+
+> **MyClaw.ai users**: Same as above — SSH into your instance or use the web terminal.
 
 ### Claude Code
 
 ```bash
-# Per-project (at git repo root)
+# Per-project
 mkdir -p .claude/skills
 git clone https://github.com/LeoYeAI/teammate-skill .claude/skills/create-teammate
 
@@ -83,153 +87,170 @@ git clone https://github.com/LeoYeAI/teammate-skill .claude/skills/create-teamma
 git clone https://github.com/LeoYeAI/teammate-skill ~/.claude/skills/create-teammate
 ```
 
-### OpenClaw
+Then type `/create-teammate` in Claude Code.
+
+### Other AgentSkills Agents
+
+Clone into your agent's skill directory. Any agent that reads [AgentSkills](https://agentskills.io) `SKILL.md` frontmatter will auto-detect it.
+
+### Optional Dependencies
 
 ```bash
-git clone https://github.com/LeoYeAI/teammate-skill ~/.openclaw/workspace/skills/create-teammate
+pip3 install -r requirements.txt   # Only needed for Slack/GitHub auto-collectors
 ```
 
-### Other AgentSkills-Compatible Agents
-
-Clone into your agent's skill directory. The entry point is `SKILL.md` with standard frontmatter — any agent that reads AgentSkills format will pick it up automatically.
-
-### Dependencies (optional)
-
-```bash
-pip3 install -r requirements.txt
-```
-
-> Slack auto-collection requires a Bot Token. GitHub collection uses `GITHUB_TOKEN`. See [INSTALL.md](INSTALL.md).
+> Slack auto-collection needs a Bot Token. GitHub collection uses `GITHUB_TOKEN`. See [INSTALL.md](INSTALL.md) for setup guides.
 
 ---
 
-## Usage
+## Supported Data Sources
 
-In your agent (Claude Code, OpenClaw, or any AgentSkills-compatible agent), type:
+| Source | Type | Method |
+|--------|------|--------|
+| **Slack** | Messages, threads, reactions | ✅ Auto-collect (enter username) or upload JSON export |
+| **GitHub** | PRs, reviews, commits, issues | ✅ Auto-collect (enter handle) |
+| **Gmail** | Emails | Upload `.mbox` / `.eml` from Google Takeout |
+| **Teams / Outlook** | Chat, emails | Upload export JSON |
+| **Notion** | Wiki, docs | Upload Markdown/HTML export |
+| **Confluence** | Wiki, docs | Upload HTML export or zip |
+| **JIRA / Linear** | Issues, tickets | Upload CSV / JSON export |
+| **PDF / Images** | Any document | Upload directly |
+| **Markdown / Text** | Anything | Upload or paste |
 
-```
-/create-teammate
-```
-
-Follow the prompts: enter a name, role info (e.g. `Google L5 backend engineer`), personality tags, then choose data sources. Everything except the name is skippable — even a description alone generates a useful Skill.
-
-Once created, invoke the teammate with `/{slug}`.
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `/create-teammate` | Create a new teammate Skill |
-| `/list-teammates` | List all teammate Skills |
-| `/{slug}` | Invoke full Skill (Persona + Work) |
-| `/{slug}-work` | Work capabilities only |
-| `/{slug}-persona` | Persona only |
-| `/teammate-rollback {slug} {version}` | Rollback to a previous version |
-| `/delete-teammate {slug}` | Delete a teammate Skill |
+Mix and match any combination. Or skip entirely — even a one-sentence description generates a useful skill.
 
 ---
 
 ## Demo
 
-> Input: `Stripe L3 backend engineer, INTJ, perfectionist, Stripe-style, brutal code reviewer`
+> Example teammate: Stripe L3 backend engineer, INTJ, perfectionist, brutal code reviewer
 
-**Scenario 1: Code Review**
-
+**Code Review:**
 ```
-User              ❯ Can you review this API endpoint?
+You    ❯  Review this payment endpoint?
 
-teammate.skill    ❯ What problem does this actually solve? The PR description
-                    doesn't say. Adding that first.
-                    
-                    Looking at the code: you're using float for the amount
-                    field. That's a blocking issue — use Decimal for financial
-                    values. Also, this endpoint isn't idempotent. What happens
-                    on retry?
+Alex   ❯  What problem does this solve? PR description doesn't say.
+          
+          Blocking: you're using float for amount. Use Decimal for financial
+          values. Also this endpoint isn't idempotent — what happens on retry?
 ```
 
-**Scenario 2: Design Discussion**
-
+**Architecture Decision:**
 ```
-User              ❯ Should we use MongoDB for this new feature?
+You    ❯  Should we use MongoDB for this?
 
-teammate.skill    ❯ Strong disagree. We need ACID transactions for payment
-                    flows. Mongo doesn't give us that. Let's stick with
-                    Postgres. If the concern is schema flexibility, we can
-                    use JSONB columns.
+Alex   ❯  No. We need ACID for payment flows. Stick with Postgres.
+          If the concern is schema flexibility, use JSONB columns.
 ```
 
-**Scenario 3: Pushback**
-
+**Pushback:**
 ```
-User              ❯ Can we skip tests and ship this by Friday?
+You    ❯  Skip tests, ship by Friday?
 
-teammate.skill    ❯ No. We get the tests right or we don't ship. If Friday
-                    is a hard deadline, let's cut scope instead of cutting
-                    quality. What's the minimum we need for launch?
+Alex   ❯  No. Tests right or we don't ship. If Friday is hard,
+          cut scope instead of cutting quality.
 ```
 
 ---
 
-## Features
+## Platform Compatibility
 
-### Generated Skill Structure
+This skill is built to run natively on both platforms — no adapter layer, no workarounds.
 
-Each teammate Skill has two parts that work together:
+| Feature | Claude Code | OpenClaw |
+|---------|:-----------:|:--------:|
+| Install | `.claude/skills/` | `openclaw skills install` or `~/.openclaw/workspace/skills/` |
+| Trigger | `/create-teammate` | `/create-teammate` |
+| Path resolution | `${CLAUDE_SKILL_DIR}` | `{baseDir}` (auto-resolved) |
+| File operations | `Read` / `Write` / `Edit` | `read` / `write` / `edit` |
+| Run scripts | `Bash` tool | `exec` tool |
+| Fetch URLs | `Bash` → curl | `web_fetch` tool |
+| Generated output | `./teammates/{slug}/` | `./teammates/{slug}/` |
 
-| Part | Content |
-|------|---------|
-| **Part A — Work Skill** | Systems owned, tech standards, workflows, CR focus, experience |
-| **Part B — Persona** | 5-layer personality: hard rules → identity → expression → decisions → interpersonal |
+The SKILL.md uses `{baseDir}` for all paths — both platforms resolve it automatically.
 
-Execution: `Receive task → Persona decides attitude → Work Skill executes → Output in their voice`
+---
 
-### Supported Tags
+## Evolution
 
-**Personality**: Meticulous · Good-enough · Blame-deflector · Perfectionist · Procrastinator · Ship-fast · Over-engineer · Scope-creeper · Bike-shedder · Micro-manager · Hands-off · Devil's-advocate · Mentor-type · Gatekeeper · Passive-aggressive · Confrontational …
+Teammate skills aren't static — they improve over time:
 
-**Corporate culture**: Google-style · Meta-style · Amazon-style · Apple-style · Stripe-style · Netflix-style · Microsoft-style · Startup-mode · Agency-mode · First-principles · Open-source-native
+| Method | How |
+|--------|-----|
+| **Append data** | "I found more Slack logs" → auto-analyze delta, merge without overwriting |
+| **Correct mistakes** | "They wouldn't say that, they'd say..." → instant correction |
+| **Version control** | Every update auto-archives → rollback to any version |
 
-**Levels**: Google L3-L11 · Meta E3-E9 · Amazon L4-L10 · Stripe L1-L5 · Microsoft 59-67+ · Apple ICT2-ICT6 · Netflix · Uber · Airbnb · ByteDance · Alibaba · Tencent · Generic (Junior/Senior/Staff/Principal)
+---
 
-### Evolution
+## Commands
 
-- **Append files** → auto-analyze delta → merge into relevant sections, never overwrite existing conclusions
-- **Conversation correction** → say "they wouldn't do that, they would..." → writes to Correction layer, takes effect immediately
-- **Version control** → auto-archive on every update, rollback to any previous version
+| Command | Description |
+|---------|-------------|
+| `/create-teammate` | Create a new teammate skill |
+| `/list-teammates` | List all generated teammates |
+| `/{slug}` | Invoke teammate (full persona + work) |
+| `/{slug}-work` | Work capabilities only |
+| `/{slug}-persona` | Persona only |
+| `/update-teammate {slug}` | Add new materials to existing teammate |
+| `/teammate-rollback {slug} {version}` | Rollback to previous version |
+| `/delete-teammate {slug}` | Delete a teammate skill |
+
+---
+
+## Supported Tags
+
+<details>
+<summary><strong>Personality tags</strong> (click to expand)</summary>
+
+Meticulous · Good-enough · Blame-deflector · Perfectionist · Procrastinator · Ship-fast · Over-engineer · Scope-creeper · Bike-shedder · Micro-manager · Hands-off · Devil's-advocate · Mentor-type · Gatekeeper · Passive-aggressive · Confrontational · Drama-free
+
+</details>
+
+<details>
+<summary><strong>Corporate culture tags</strong></summary>
+
+Google-style · Meta-style · Amazon-style · Apple-style · Stripe-style · Netflix-style · Microsoft-style · Startup-mode · Agency-mode · First-principles · Open-source-native
+
+</details>
+
+<details>
+<summary><strong>Level mappings</strong></summary>
+
+Google L3-L11 · Meta E3-E9 · Amazon L4-L10 · Stripe L1-L5 · Microsoft 59-67+ · Apple ICT2-ICT6 · Netflix · Uber · Airbnb · ByteDance · Alibaba · Tencent · Generic (Junior / Mid / Senior / Staff / Principal)
+
+</details>
 
 ---
 
 ## Project Structure
 
-This project follows the [AgentSkills](https://agentskills.io) open standard:
-
 ```
 create-teammate/
-├── SKILL.md                  # Skill entry point
-├── prompts/                  # Prompt templates
-│   ├── intake.md             #   Info collection (3 questions)
-│   ├── work_analyzer.md      #   Work capability extraction
-│   ├── persona_analyzer.md   #   Personality extraction + tag translation
-│   ├── work_builder.md       #   work.md generation template
-│   ├── persona_builder.md    #   persona.md 5-layer structure
-│   ├── merger.md             #   Incremental merge logic
-│   └── correction_handler.md #   Conversation correction handler
-├── tools/                    # Data collection & management
-│   ├── slack_collector.py    #   Slack auto-collector (Bot Token)
-│   ├── slack_parser.py       #   Slack export JSON parser
-│   ├── github_collector.py   #   GitHub PR/review collector
-│   ├── teams_parser.py       #   Teams/Outlook parser
-│   ├── email_parser.py       #   Gmail .mbox/.eml parser
-│   ├── notion_parser.py      #   Notion export parser
-│   ├── confluence_parser.py  #   Confluence export parser
-│   ├── project_tracker_parser.py # JIRA/Linear parser
-│   ├── skill_writer.py       #   Skill file management
-│   └── version_manager.py    #   Version archive & rollback
-├── teammates/                # Generated teammate Skills
-│   └── example_alex/         #   Example: Stripe L3 backend engineer
-├── docs/
+├── SKILL.md                      # Entry point (dual-platform)
+├── prompts/                      # Prompt templates (loaded by SKILL.md)
+│   ├── intake.md                 #   3-question info collection
+│   ├── work_analyzer.md          #   Work capability extraction
+│   ├── persona_analyzer.md       #   Personality extraction + tag translation
+│   ├── work_builder.md           #   work.md generation
+│   ├── persona_builder.md        #   persona.md 5-layer structure
+│   ├── merger.md                 #   Incremental merge logic
+│   └── correction_handler.md     #   Conversation correction
+├── tools/                        # Python scripts (run via Bash/exec)
+│   ├── slack_collector.py        #   Slack API auto-collector
+│   ├── slack_parser.py           #   Slack export JSON parser
+│   ├── github_collector.py       #   GitHub PR/review collector
+│   ├── teams_parser.py           #   Teams/Outlook parser
+│   ├── email_parser.py           #   Gmail .mbox/.eml parser
+│   ├── notion_parser.py          #   Notion export parser
+│   ├── confluence_parser.py      #   Confluence export parser
+│   ├── project_tracker_parser.py #   JIRA/Linear parser
+│   ├── skill_writer.py           #   Skill file management
+│   └── version_manager.py        #   Version archive & rollback
+├── teammates/                    # Generated teammate skills
+│   └── example_alex/             #   Example: Stripe L3 backend engineer
 ├── requirements.txt
-├── INSTALL.md
+├── INSTALL.md                    # Detailed setup (API tokens, etc.)
 └── LICENSE
 ```
 
@@ -237,22 +258,26 @@ create-teammate/
 
 ## Best Practices
 
-- **Source material quality = Skill quality**: real chat logs + design docs > manual description only
-- Prioritize collecting: **design docs they authored** > **code review comments** > **decision discussions** > casual chat
-- GitHub PRs and reviews are goldmines for Work Skill — they reveal actual coding standards and review priorities
-- Slack threads are goldmines for Persona — they reveal communication style under different pressures
-- Start with manual description, then append real data incrementally as you find it
+1. **Source quality = skill quality** — real chat logs and design docs beat manual descriptions
+2. **Best sources by type**: design docs they wrote > code review comments > architecture discussions > casual chat
+3. **GitHub PRs** are gold for Work Skill — they reveal actual coding standards
+4. **Slack threads** are gold for Persona — they reveal communication style under pressure
+5. **Start small** — create from description first, then append real data as you find it
 
 ---
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+[MIT](LICENSE)
 
 ---
 
 <div align="center">
 
 **teammate.skill** — because the best knowledge transfer isn't a document, it's a working model.
+
+<br>
+
+Powered by [MyClaw.ai](https://myclaw.ai) · Built for [OpenClaw](https://github.com/openclaw/openclaw) & [Claude Code](https://claude.ai/code)
 
 </div>

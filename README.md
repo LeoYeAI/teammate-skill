@@ -75,16 +75,16 @@ This skill follows the [AgentSkills](https://agentskills.io) open standard and w
 ```bash
 # Per-project (at git repo root)
 mkdir -p .claude/skills
-git clone https://github.com/anthropics/teammate-skill .claude/skills/create-teammate
+git clone https://github.com/LeoYeAI/teammate-skill .claude/skills/create-teammate
 
 # Global (all projects)
-git clone https://github.com/anthropics/teammate-skill ~/.claude/skills/create-teammate
+git clone https://github.com/LeoYeAI/teammate-skill ~/.claude/skills/create-teammate
 ```
 
 ### OpenClaw
 
 ```bash
-git clone https://github.com/anthropics/teammate-skill ~/.openclaw/workspace/skills/create-teammate
+git clone https://github.com/LeoYeAI/teammate-skill ~/.openclaw/workspace/skills/create-teammate
 ```
 
 ### Other AgentSkills-Compatible Agents

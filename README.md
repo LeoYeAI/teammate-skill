@@ -58,9 +58,25 @@ When invoked: **Persona decides the attitude → Work Skill executes → output 
 
 ---
 
+## Platforms
+
+### 🦞 [OpenClaw](https://github.com/openclaw/openclaw)
+
+Open-source personal AI assistant by [@steipete](https://github.com/steipete). Runs on your own hardware, answers on 25+ channels (WhatsApp, Telegram, Slack, Discord, Teams, Signal, iMessage…). Local-first, persistent memory, voice, canvas, cron jobs, and a growing skills ecosystem.
+
+### 🏆 [MyClaw.ai](https://myclaw.ai)
+
+Managed hosting for OpenClaw — skip Docker, servers, and configs. One-click deploy, always-on, automatic updates, daily backups. Your OpenClaw instance live in minutes. Perfect if you want teammate.skill running 24/7 without self-hosting.
+
+### [Claude Code](https://claude.ai/code)
+
+Anthropic's official agentic coding CLI. Install this skill into `.claude/skills/` and invoke with `/create-teammate`.
+
+---
+
 ## Install
 
-### 🦞 OpenClaw
+### 🦞 OpenClaw / 🏆 MyClaw.ai
 
 **Option A — ClawHub (recommended):**
 ```bash
@@ -74,7 +90,7 @@ git clone https://github.com/LeoYeAI/teammate-skill ~/.openclaw/workspace/skills
 
 Then start a new session (`/new`) and type `/create-teammate`.
 
-> **MyClaw.ai users**: Same as above — SSH into your instance or use the web terminal.
+> **MyClaw.ai users**: SSH into your instance or use the web terminal. Same commands.
 
 ### Claude Code
 

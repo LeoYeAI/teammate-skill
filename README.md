@@ -58,7 +58,7 @@ and get an **AI Skill that actually works like them**<br>
 ### [Claude Code](https://claude.ai/code)
 Anthropic's official CLI for Claude. Install this skill into `.claude/skills/` and invoke with `/create-teammate`.
 
-### [OpenClaw](https://openclaw.ai) 🦞
+### 🦞 [OpenClaw](https://openclaw.ai)
 Open-source personal AI assistant by [@steipete](https://github.com/steipete). Runs on your own devices, answers on 25+ channels (WhatsApp, Telegram, Slack, Discord, Teams, Signal, iMessage, and more). Local-first gateway, persistent memory, voice, canvas, cron jobs, and a growing skills ecosystem. [GitHub](https://github.com/openclaw/openclaw)
 
 ### 🏆 [MyClaw.ai](https://myclaw.ai)

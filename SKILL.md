@@ -261,6 +261,54 @@ mkdir -p teammates/{slug}/knowledge/emails
 ```
 
 **5. Write `teammates/{slug}/SKILL.md`** (the generated teammate skill):
+
+**Size guard**: If work.md + persona.md combined exceed **8000 words**, split the generated SKILL.md into modular files instead of one monolith:
+
+```
+teammates/{slug}/
+├── SKILL.md          # Entry point — loads modules on demand
+├── work.md           # Full work skill (standalone)
+├── persona.md        # Full persona (standalone)
+├── meta.json
+└── versions/
+```
+
+The SKILL.md in this case uses a **lazy-load pattern**:
+
+```markdown
+---
+name: teammate-{slug}
+description: "{name} — {identity}. Full persona + work skill."
+user-invocable: true
+---
+
+# {name}
+
+{identity}
+
+## Loading
+
+This teammate has extensive documentation. Load on demand:
+- For work questions: read `work.md` in this directory
+- For persona/style questions: read `persona.md` in this directory
+- For full context: read both
+
+## Quick Reference
+
+{10-line summary: top 5 work skills + top 5 persona traits}
+
+## Execution Rules
+
+1. Read persona.md first for attitude and communication style
+2. Read work.md for domain knowledge and technical standards
+3. Always maintain persona.md Layer 2 communication style
+4. Layer 0 rules have highest priority — never violate
+5. Correction Log entries override earlier rules
+6. Never break character into generic AI
+7. Keep response length realistic for this person
+```
+
+For skills under 8000 words, use the single-file format (inline everything) as before:
 ```markdown
 ---
 name: teammate-{slug}
@@ -320,6 +368,36 @@ Detect platform and run the appropriate command. If auto-install fails, show man
 Let me give you a quick demo — ask alex-chen anything:
 ```
 
+**6b. Run Smoke Test (mandatory):**
+
+Read `{baseDir}/prompts/smoke_test.md` for the full test protocol.
+
+Internally run 3 test prompts against the generated skill:
+1. Domain question (tests work skill accuracy)
+2. Pushback scenario (tests persona Layer 0 + Layer 3)
+3. Out-of-scope question (tests character boundary)
+
+Show a compact scorecard to the user:
+```
+🧪 Smoke Test: ✅ Domain ✅ Pushback ✅ Out-of-scope — 3/3 passed
+```
+
+If any test fails (❌): auto-fix the underlying issue, re-test, and tell the user what was adjusted.
+
+**6c. Privacy Scan (before sharing/exporting):**
+
+If the user intends to share or export the teammate, run:
+```bash
+python3 {baseDir}/tools/privacy_guard.py --scan teammates/{slug}/
+```
+If PII is found, warn the user and offer to auto-redact:
+```bash
+python3 {baseDir}/tools/privacy_guard.py --scan teammates/{slug}/ --redact
+```
+
+Knowledge directories (`knowledge/{slug}/`) contain raw personal data and should **never** be shared.
+The `.gitignore` already excludes `knowledge/` and `teammates/*/` from version control.
+
 Then immediately switch into the generated skill's persona and respond to whatever the user says next as the teammate. This makes the skill feel real from second one — no "go try it yourself" dead end.
 
 If the user doesn't ask anything, prompt with a sample:
@@ -363,6 +441,8 @@ When user says "that's wrong" / "they wouldn't do that":
 | Command | Action |
 |---------|--------|
 | `/list-teammates` | `python3 {baseDir}/tools/skill_writer.py --action list --base-dir ./teammates` |
+| `/compare {slug1} vs {slug2}` | Read `{baseDir}/prompts/compare.md`, then load both teammates' work.md + persona.md and generate side-by-side comparison |
+| `/export-teammate {slug}` | `python3 {baseDir}/tools/export.py --slug {slug} --base-dir ./teammates` — creates portable package |
 | `/teammate-rollback {slug} {ver}` | `python3 {baseDir}/tools/version_manager.py --action rollback --slug {slug} --version {ver} --base-dir ./teammates` |
 | `/delete-teammate {slug}` | Confirm, then `rm -rf teammates/{slug}` |
 

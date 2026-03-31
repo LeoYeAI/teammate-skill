@@ -124,6 +124,9 @@ Une fois créé, invoquez le collègue avec `/{slug}`.
 | `/{slug}` | Invoquer le Skill complet (Persona + Travail) |
 | `/{slug}-work` | Capacités de travail uniquement |
 | `/{slug}-persona` | Persona uniquement |
+| `/compare {a} vs {b}` | Comparaison côte à côte avec simulation de scénarios |
+| `/export-teammate {slug}` | Exporter un package portable `.tar.gz` pour le partage |
+| `/update-teammate {slug}` | Ajouter de nouveaux matériaux à un collègue existant |
 | `/teammate-rollback {slug} {version}` | Revenir à une version précédente |
 | `/delete-teammate {slug}` | Supprimer un Skill de collègue |
 
@@ -199,6 +202,78 @@ Exécution : `Réception de la tâche → La Persona décide de l'attitude → L
 
 ---
 
+## Assurance qualité
+
+Chaque collègue passe par un **pipeline de qualité à 3 niveaux** avant de vous être livré :
+
+### 1. Porte de qualité (pré-aperçu)
+Valide le contenu généré selon 7 règles strictes : concrétude du Layer 0, nombre d'exemples, densité des expressions typiques, ordre des priorités, définition du périmètre, absence de remplissage générique, complétude tag→règle. Les échecs sont auto-corrigés avant que vous ne voyiez l'aperçu.
+
+### 2. Smoke Test (post-création)
+Trois prompts de test automatisés sont exécutés contre chaque Skill généré :
+- **Question de domaine** — le Skill utilise-t-il de vrais systèmes/outils, et non des conseils génériques ?
+- **Scénario de pression** — la persona tient-elle sous la pression, ou s'effondre-t-elle en IA générique ?
+- **Question hors périmètre** — le Skill admet-il les limites de ses connaissances dans le personnage ?
+
+```
+🧪 Smoke Test: ✅ Domain ✅ Pushback ✅ Out-of-scope — 3/3 passed
+```
+
+### 3. Scan de confidentialité (pré-export)
+Détection automatique des e-mails, numéros de téléphone, tokens API, numéros de sécurité sociale et autres données personnelles :
+```bash
+python3 tools/privacy_guard.py --scan teammates/alex-chen/          # détecter
+python3 tools/privacy_guard.py --scan teammates/alex-chen/ --redact  # auto-corriger
+```
+
+Les fichiers de connaissances brutes (`knowledge/`) sont exclus de git et des exports par défaut.
+
+---
+
+## Comparer des collègues
+
+Comparaison côte à côte avec simulation de scénarios :
+
+```
+You    ❯  /compare alex-chen vs bob-smith
+
+Agent  ❯  ━━━ alex-chen vs bob-smith ━━━
+                         alex-chen              bob-smith
+          Priority:      Correctness > Speed    Ship fast > Perfect
+          CR Style:      Blocking on naming     Suggestions only
+          Under Pressure: Gets quieter           Gets louder
+          Says "No" by:  Direct refusal          Asking questions
+
+You    ❯  Who should review the payments API redesign?
+
+Agent  ❯  alex-chen: "Send me the design doc. I want to check
+             idempotency and error contracts."
+          bob-smith: "Let's hop on a call and walk through it."
+
+          Recommendation: alex-chen for correctness rigor.
+```
+
+Supporte également la **simulation de décision** — regardez deux collègues débattre d'une décision technique dans le personnage.
+
+---
+
+## Exporter & Partager
+
+Exportez des collègues en packages portables :
+
+```bash
+/export-teammate alex-chen
+# → alex-chen.teammate.tar.gz (fichiers de skill uniquement, pas de données brutes)
+
+# Importer sur une autre machine :
+tar xzf alex-chen.teammate.tar.gz -C ./teammates/
+```
+
+L'export inclut : SKILL.md, work.md, persona.md, meta.json, l'historique des versions et un manifeste.
+Les fichiers de connaissances brutes sont exclus par défaut — ajoutez `--include-knowledge` si nécessaire (⚠️ contient des données personnelles).
+
+---
+
 ## Structure du projet
 
 Ce projet suit le standard ouvert [AgentSkills](https://agentskills.io) :
@@ -213,7 +288,9 @@ create-teammate/
 │   ├── work_builder.md       #   Modèle de génération work.md
 │   ├── persona_builder.md    #   Structure à 5 couches persona.md
 │   ├── merger.md             #   Logique de fusion incrémentale
-│   └── correction_handler.md #   Gestionnaire de corrections par conversation
+│   ├── correction_handler.md #   Gestionnaire de corrections par conversation
+│   ├── compare.md            #   Comparaison côte à côte de collègues
+│   └── smoke_test.md         #   Validation qualité post-création
 ├── tools/                    # Collecte de données & gestion
 │   ├── slack_collector.py    #   Collecteur automatique Slack (Bot Token)
 │   ├── slack_parser.py       #   Parseur d'export JSON Slack
@@ -224,7 +301,9 @@ create-teammate/
 │   ├── confluence_parser.py  #   Parseur d'export Confluence
 │   ├── project_tracker_parser.py # Parseur JIRA/Linear
 │   ├── skill_writer.py       #   Gestion des fichiers Skill
-│   └── version_manager.py    #   Archivage de versions & rollback
+│   ├── version_manager.py    #   Archivage de versions & rollback
+│   ├── privacy_guard.py      #   Scanner PII & auto-masquage
+│   └── export.py             #   Export/import de packages portables
 ├── teammates/                # Skills de collègues générés
 │   └── example_alex/         #   Exemple : Stripe L3 backend engineer
 ├── docs/

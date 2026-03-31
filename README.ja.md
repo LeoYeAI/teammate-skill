@@ -124,6 +124,9 @@ pip3 install -r requirements.txt
 | `/{slug}` | フルスキルを呼び出し（ペルソナ＋ワーク） |
 | `/{slug}-work` | ワーク機能のみ |
 | `/{slug}-persona` | ペルソナのみ |
+| `/compare {a} vs {b}` | サイドバイサイド比較とシナリオシミュレーション |
+| `/export-teammate {slug}` | 共有用のポータブル `.tar.gz` パッケージをエクスポート |
+| `/update-teammate {slug}` | 既存のチームメイトに新しい資料を追加 |
 | `/teammate-rollback {slug} {version}` | 以前のバージョンにロールバック |
 | `/delete-teammate {slug}` | チームメイトスキルを削除 |
 
@@ -199,6 +202,78 @@ teammate.skill    ❯ No. We get the tests right or we don't ship. If Friday
 
 ---
 
+## 品質保証
+
+すべてのチームメイトは、あなたに届く前に **3層の品質パイプライン** を通過します：
+
+### 1. 品質ゲート（プレビュー前）
+生成されたコンテンツを7つの厳格なルールで検証：Layer 0の具体性、例の数、口癖の密度、優先順位の順序、スコープ定義、汎用的なフィラーの排除、タグ→ルールの完全性。不合格項目はプレビューが表示される前に自動修正されます。
+
+### 2. スモークテスト（作成後）
+3つの自動テストプロンプトが各生成スキルに対して実行されます：
+- **ドメイン質問** — スキルが汎用的なアドバイスではなく、実際のシステム/ツールを使用しているか？
+- **プレッシャーシナリオ** — ペルソナが圧力下でも維持されるか、それとも汎用AIに崩壊するか？
+- **スコープ外質問** — スキルがキャラクターを保ちながら知識の限界を認めるか？
+
+```
+🧪 Smoke Test: ✅ Domain ✅ Pushback ✅ Out-of-scope — 3/3 passed
+```
+
+### 3. プライバシースキャン（エクスポート前）
+メールアドレス、電話番号、APIトークン、SSN、その他の個人情報を自動検出：
+```bash
+python3 tools/privacy_guard.py --scan teammates/alex-chen/          # 検出
+python3 tools/privacy_guard.py --scan teammates/alex-chen/ --redact  # 自動修正
+```
+
+生の知識ファイル（`knowledge/`）はデフォルトでgitとエクスポートから除外されます。
+
+---
+
+## チームメイトの比較
+
+サイドバイサイド比較とシナリオシミュレーション：
+
+```
+You    ❯  /compare alex-chen vs bob-smith
+
+Agent  ❯  ━━━ alex-chen vs bob-smith ━━━
+                         alex-chen              bob-smith
+          Priority:      Correctness > Speed    Ship fast > Perfect
+          CR Style:      Blocking on naming     Suggestions only
+          Under Pressure: Gets quieter           Gets louder
+          Says "No" by:  Direct refusal          Asking questions
+
+You    ❯  Who should review the payments API redesign?
+
+Agent  ❯  alex-chen: "Send me the design doc. I want to check
+             idempotency and error contracts."
+          bob-smith: "Let's hop on a call and walk through it."
+
+          Recommendation: alex-chen for correctness rigor.
+```
+
+**意思決定シミュレーション** もサポート — 2人のチームメイトがキャラクターを保ちながら技術的な決定について議論する様子を観察できます。
+
+---
+
+## エクスポート＆共有
+
+チームメイトをポータブルパッケージとしてエクスポート：
+
+```bash
+/export-teammate alex-chen
+# → alex-chen.teammate.tar.gz（スキルファイルのみ、生データなし）
+
+# 別のマシンにインポート：
+tar xzf alex-chen.teammate.tar.gz -C ./teammates/
+```
+
+エクスポートに含まれるもの：SKILL.md、work.md、persona.md、meta.json、バージョン履歴、マニフェスト。
+生の知識ファイルはデフォルトで除外されます — 必要な場合は `--include-knowledge` を追加してください（⚠️ 個人情報を含みます）。
+
+---
+
 ## プロジェクト構成
 
 このプロジェクトは [AgentSkills](https://agentskills.io) オープンスタンダードに準拠しています：
@@ -213,7 +288,9 @@ create-teammate/
 │   ├── work_builder.md       #   work.md 生成テンプレート
 │   ├── persona_builder.md    #   persona.md 5層構造
 │   ├── merger.md             #   差分マージロジック
-│   └── correction_handler.md #   会話修正ハンドラー
+│   ├── correction_handler.md #   会話修正ハンドラー
+│   ├── compare.md            #   チームメイトのサイドバイサイド比較
+│   └── smoke_test.md         #   作成後の品質検証
 ├── tools/                    # データ収集 & 管理ツール
 │   ├── slack_collector.py    #   Slack自動収集（Bot Token）
 │   ├── slack_parser.py       #   Slack export JSONパーサー
@@ -224,7 +301,9 @@ create-teammate/
 │   ├── confluence_parser.py  #   Confluenceエクスポートパーサー
 │   ├── project_tracker_parser.py # JIRA/Linearパーサー
 │   ├── skill_writer.py       #   スキルファイル管理
-│   └── version_manager.py    #   バージョンアーカイブ & ロールバック
+│   ├── version_manager.py    #   バージョンアーカイブ & ロールバック
+│   ├── privacy_guard.py      #   PIIスキャナー & 自動マスキング
+│   └── export.py             #   ポータブルパッケージのエクスポート/インポート
 ├── teammates/                # 生成されたチームメイトスキル
 │   └── example_alex/         #   例: Stripe L3 backend engineer
 ├── docs/

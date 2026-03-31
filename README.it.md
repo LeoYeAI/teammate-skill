@@ -124,6 +124,9 @@ Una volta creata, invoca il teammate con `/{slug}`.
 | `/{slug}` | Invoca la Skill completa (Persona + Lavoro) |
 | `/{slug}-work` | Solo capacità lavorative |
 | `/{slug}-persona` | Solo persona |
+| `/compare {a} vs {b}` | Confronto affiancato con simulazione di scenari |
+| `/export-teammate {slug}` | Esporta pacchetto portabile `.tar.gz` per la condivisione |
+| `/update-teammate {slug}` | Aggiungi nuovi materiali a un teammate esistente |
 | `/teammate-rollback {slug} {version}` | Ripristina una versione precedente |
 | `/delete-teammate {slug}` | Elimina una Skill teammate |
 
@@ -200,35 +203,109 @@ Esecuzione: `Ricevi task → La Persona decide l'atteggiamento → La Work Skill
 
 ---
 
+## Garanzia di Qualità
+
+Ogni teammate passa attraverso una **pipeline di qualità a 3 livelli** prima della consegna:
+
+### 1. Quality Gate (pre-anteprima)
+Valida il contenuto generato su 7 regole: concretezza Layer 0, conteggio esempi, densità catchphrase, ordinamento priorità, definizione scope, nessun testo generico, completezza traduzione tag→regola. I problemi vengono corretti automaticamente prima dell'anteprima.
+
+### 2. Smoke Test (post-creazione)
+Tre prompt di test automatici eseguiti su ogni skill generata:
+- **Domanda di dominio** — la skill usa sistemi/strumenti reali, non consigli generici?
+- **Scenario di opposizione** — la persona regge sotto pressione, o crolla in AI generico?
+- **Domanda fuori ambito** — la skill ammette i limiti di conoscenza restando nel personaggio?
+
+```
+🧪 Smoke Test: ✅ Dominio ✅ Opposizione ✅ Fuori ambito — 3/3 superati
+```
+
+### 3. Scansione Privacy (pre-esportazione)
+Rilevamento automatico di email, numeri di telefono, token API, codici fiscali e altri dati sensibili:
+```bash
+python3 tools/privacy_guard.py --scan teammates/alex-chen/          # rileva
+python3 tools/privacy_guard.py --scan teammates/alex-chen/ --redact  # correggi
+```
+
+I file di conoscenza grezzi (`knowledge/`) sono esclusi da git e dalle esportazioni per impostazione predefinita.
+
+---
+
+## Confronta Teammate
+
+Confronto affiancato con simulazione di scenari:
+
+```
+Tu     ❯  /compare alex-chen vs bob-smith
+
+Agent  ❯  ━━━ alex-chen vs bob-smith ━━━
+                         alex-chen              bob-smith
+          Priorità:      Correttezza > Velocità Ship fast > Perfetto
+          Stile CR:      Bloccante sui nomi      Solo suggerimenti
+          Sotto pressione: Diventa più silenzioso Diventa più rumoroso
+
+Tu     ❯  Chi dovrebbe revisionare il redesign dell'API pagamenti?
+
+Agent  ❯  alex-chen: "Mandami il design doc. Voglio controllare
+             idempotenza e contratti di errore."
+          bob-smith: "Facciamo una call e lo vediamo insieme."
+
+          Raccomandazione: alex-chen per il rigore sulla correttezza.
+```
+
+Supporta anche **simulazione di decisioni** — guarda due teammate discutere una decisione tecnica restando nel personaggio.
+
+---
+
+## Esporta e Condividi
+
+Esporta teammate come pacchetti portabili:
+
+```bash
+/export-teammate alex-chen
+# → alex-chen.teammate.tar.gz (solo file skill, nessun dato grezzo)
+
+# Importa su un'altra macchina:
+tar xzf alex-chen.teammate.tar.gz -C ./teammates/
+```
+
+L'esportazione include: SKILL.md, work.md, persona.md, meta.json, cronologia versioni e un manifesto.
+I file di conoscenza grezzi sono esclusi per impostazione predefinita — aggiungi `--include-knowledge` se necessario (⚠️ contiene dati personali).
+
+---
+
 ## Struttura del progetto
 
 Questo progetto segue lo standard aperto [AgentSkills](https://agentskills.io):
 
 ```
 create-teammate/
-├── SKILL.md                  # Punto di ingresso della Skill
-├── prompts/                  # Template dei prompt
-│   ├── intake.md             #   Raccolta informazioni (3 domande)
-│   ├── work_analyzer.md      #   Estrazione capacità lavorative
-│   ├── persona_analyzer.md   #   Estrazione personalità + traduzione tag
-│   ├── work_builder.md       #   Template di generazione work.md
-│   ├── persona_builder.md    #   Struttura a 5 livelli di persona.md
-│   ├── merger.md             #   Logica di merge incrementale
-│   └── correction_handler.md #   Gestore correzioni conversazionali
-├── tools/                    # Raccolta dati e gestione
-│   ├── slack_collector.py    #   Raccoglitore automatico Slack (Bot Token)
-│   ├── slack_parser.py       #   Parser per export JSON di Slack
-│   ├── github_collector.py   #   Raccoglitore PR/review GitHub
-│   ├── teams_parser.py       #   Parser Teams/Outlook
-│   ├── email_parser.py       #   Parser Gmail .mbox/.eml
-│   ├── notion_parser.py      #   Parser export Notion
-│   ├── confluence_parser.py  #   Parser export Confluence
-│   ├── project_tracker_parser.py # Parser JIRA/Linear
-│   ├── skill_writer.py       #   Gestione file della Skill
-│   └── version_manager.py    #   Archiviazione versioni e rollback
-├── teammates/                # Skill teammate generate
-│   └── example_alex/         #   Esempio: Stripe L3 backend engineer
-├── docs/
+├── SKILL.md                      # Punto di ingresso della Skill
+├── prompts/                      # Template dei prompt
+│   ├── intake.md                 #   Raccolta informazioni (3 domande)
+│   ├── work_analyzer.md          #   Estrazione capacità lavorative
+│   ├── persona_analyzer.md       #   Estrazione personalità + traduzione tag
+│   ├── work_builder.md           #   Template di generazione work.md
+│   ├── persona_builder.md        #   Struttura a 5 livelli di persona.md
+│   ├── merger.md                 #   Logica di merge incrementale
+│   ├── correction_handler.md     #   Gestore correzioni conversazionali
+│   ├── compare.md                #   Confronto affiancato teammate
+│   └── smoke_test.md             #   Validazione qualità post-creazione
+├── tools/                        # Raccolta dati e gestione
+│   ├── slack_collector.py        #   Raccoglitore automatico Slack (Bot Token)
+│   ├── slack_parser.py           #   Parser per export JSON di Slack
+│   ├── github_collector.py       #   Raccoglitore PR/review GitHub
+│   ├── teams_parser.py           #   Parser Teams/Outlook
+│   ├── email_parser.py           #   Parser Gmail .mbox/.eml
+│   ├── notion_parser.py          #   Parser export Notion
+│   ├── confluence_parser.py      #   Parser export Confluence
+│   ├── project_tracker_parser.py #   Parser JIRA/Linear
+│   ├── skill_writer.py           #   Gestione file della Skill
+│   ├── version_manager.py        #   Archiviazione versioni e rollback
+│   ├── privacy_guard.py          #   Scanner PII e auto-redazione
+│   └── export.py                 #   Esportazione/importazione pacchetti
+├── teammates/                    # Skill teammate generate
+│   └── example_alex/             #   Esempio: Stripe L3 backend engineer
 ├── requirements.txt
 ├── INSTALL.md
 └── LICENSE

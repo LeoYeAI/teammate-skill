@@ -231,6 +231,78 @@ Teammate skills aren't static — they improve over time:
 
 ---
 
+## Quality Assurance
+
+Every teammate goes through a **3-layer quality pipeline** before you get it:
+
+### 1. Quality Gate (pre-preview)
+Validates generated content against 7 hard rules: Layer 0 concreteness, example count, catchphrase density, priority ordering, scope definition, no generic filler, tag→rule completeness. Failures auto-fix before you see the preview.
+
+### 2. Smoke Test (post-creation)
+Three automated test prompts run against every generated skill:
+- **Domain question** — does the skill use real systems/tools, not generic advice?
+- **Pushback scenario** — does the persona hold under pressure, or collapse into generic AI?
+- **Out-of-scope question** — does the skill admit knowledge limits in-character?
+
+```
+🧪 Smoke Test: ✅ Domain ✅ Pushback ✅ Out-of-scope — 3/3 passed
+```
+
+### 3. Privacy Scan (pre-export)
+Automatic detection of emails, phone numbers, API tokens, SSNs, and other PII:
+```bash
+python3 tools/privacy_guard.py --scan teammates/alex-chen/          # detect
+python3 tools/privacy_guard.py --scan teammates/alex-chen/ --redact  # auto-fix
+```
+
+Raw knowledge files (`knowledge/`) are excluded from git and exports by default.
+
+---
+
+## Compare Teammates
+
+Side-by-side comparison with scenario simulation:
+
+```
+You    ❯  /compare alex-chen vs bob-smith
+
+Agent  ❯  ━━━ alex-chen vs bob-smith ━━━
+                         alex-chen              bob-smith
+          Priority:      Correctness > Speed    Ship fast > Perfect
+          CR Style:      Blocking on naming     Suggestions only
+          Under Pressure: Gets quieter           Gets louder
+          Says "No" by:  Direct refusal          Asking questions
+
+You    ❯  Who should review the payments API redesign?
+
+Agent  ❯  alex-chen: "Send me the design doc. I want to check
+             idempotency and error contracts."
+          bob-smith: "Let's hop on a call and walk through it."
+
+          Recommendation: alex-chen for correctness rigor.
+```
+
+Also supports **decision simulation** — watch two teammates debate a technical decision in character.
+
+---
+
+## Export & Share
+
+Export teammates as portable packages:
+
+```bash
+/export-teammate alex-chen
+# → alex-chen.teammate.tar.gz (skill files only, no raw data)
+
+# Import on another machine:
+tar xzf alex-chen.teammate.tar.gz -C ./teammates/
+```
+
+The export includes: SKILL.md, work.md, persona.md, meta.json, version history, and a manifest.
+Raw knowledge files are excluded by default — add `--include-knowledge` if needed (⚠️ contains PII).
+
+---
+
 ## Commands
 
 | Command | Description |
@@ -240,6 +312,8 @@ Teammate skills aren't static — they improve over time:
 | `/{slug}` | Invoke teammate (full persona + work) |
 | `/{slug}-work` | Work capabilities only |
 | `/{slug}-persona` | Persona only |
+| `/compare {a} vs {b}` | Side-by-side comparison with scenario simulation |
+| `/export-teammate {slug}` | Export portable `.tar.gz` package for sharing |
 | `/update-teammate {slug}` | Add new materials to existing teammate |
 | `/teammate-rollback {slug} {version}` | Rollback to previous version |
 | `/delete-teammate {slug}` | Delete a teammate skill |
@@ -283,7 +357,9 @@ create-teammate/
 │   ├── work_builder.md           #   work.md generation
 │   ├── persona_builder.md        #   persona.md 5-layer structure
 │   ├── merger.md                 #   Incremental merge logic
-│   └── correction_handler.md     #   Conversation correction
+│   ├── correction_handler.md     #   Conversation correction
+│   ├── compare.md                #   Side-by-side teammate comparison
+│   └── smoke_test.md             #   Post-creation quality validation
 ├── tools/                        # Python scripts (run via Bash/exec)
 │   ├── slack_collector.py        #   Slack API auto-collector
 │   ├── slack_parser.py           #   Slack export JSON parser
@@ -294,7 +370,9 @@ create-teammate/
 │   ├── confluence_parser.py      #   Confluence export parser
 │   ├── project_tracker_parser.py #   JIRA/Linear parser
 │   ├── skill_writer.py           #   Skill file management
-│   └── version_manager.py        #   Version archive & rollback
+│   ├── version_manager.py        #   Version archive & rollback
+│   ├── privacy_guard.py          #   PII scanner & auto-redactor
+│   └── export.py                 #   Portable package export/import
 ├── teammates/                    # Generated teammate skills
 │   └── example_alex/             #   Example: Stripe L3 backend engineer
 ├── requirements.txt

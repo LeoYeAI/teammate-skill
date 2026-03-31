@@ -124,6 +124,9 @@ pip3 install -r requirements.txt
 | `/{slug}` | Вызвать полный Skill (Персона + Работа) |
 | `/{slug}-work` | Только рабочие способности |
 | `/{slug}-persona` | Только персона |
+| `/compare {a} vs {b}` | Сравнение бок о бок с моделированием сценариев |
+| `/export-teammate {slug}` | Экспорт портативного пакета `.tar.gz` для обмена |
+| `/update-teammate {slug}` | Добавить новые материалы к существующему тиммейту |
 | `/teammate-rollback {slug} {version}` | Откатиться к предыдущей версии |
 | `/delete-teammate {slug}` | Удалить Skill тиммейта |
 
@@ -199,6 +202,78 @@ teammate.skill    ❯ No. We get the tests right or we don't ship. If Friday
 
 ---
 
+## Контроль качества
+
+Каждый тиммейт проходит **3-уровневый конвейер качества** перед тем, как вы его получите:
+
+### 1. Проверка качества (до предпросмотра)
+Валидация сгенерированного контента по 7 жёстким правилам: конкретность Layer 0, количество примеров, плотность характерных выражений, порядок приоритетов, определение области, отсутствие шаблонного заполнителя, полнота тег→правило. Ошибки автоматически исправляются до того, как вы увидите предпросмотр.
+
+### 2. Smoke Test (после создания)
+Три автоматических тестовых промпта запускаются против каждого сгенерированного Skill:
+- **Вопрос по домену** — использует ли Skill реальные системы/инструменты, а не общие советы?
+- **Сценарий давления** — держится ли персона под давлением или скатывается в обобщённый ИИ?
+- **Вопрос за пределами области** — признаёт ли Skill границы знаний в характере персонажа?
+
+```
+🧪 Smoke Test: ✅ Domain ✅ Pushback ✅ Out-of-scope — 3/3 passed
+```
+
+### 3. Сканирование приватности (до экспорта)
+Автоматическое обнаружение email-адресов, номеров телефонов, API-токенов, SSN и других персональных данных:
+```bash
+python3 tools/privacy_guard.py --scan teammates/alex-chen/          # обнаружить
+python3 tools/privacy_guard.py --scan teammates/alex-chen/ --redact  # авто-исправить
+```
+
+Сырые файлы знаний (`knowledge/`) по умолчанию исключены из git и экспортов.
+
+---
+
+## Сравнение тиммейтов
+
+Сравнение бок о бок с моделированием сценариев:
+
+```
+You    ❯  /compare alex-chen vs bob-smith
+
+Agent  ❯  ━━━ alex-chen vs bob-smith ━━━
+                         alex-chen              bob-smith
+          Priority:      Correctness > Speed    Ship fast > Perfect
+          CR Style:      Blocking on naming     Suggestions only
+          Under Pressure: Gets quieter           Gets louder
+          Says "No" by:  Direct refusal          Asking questions
+
+You    ❯  Who should review the payments API redesign?
+
+Agent  ❯  alex-chen: "Send me the design doc. I want to check
+             idempotency and error contracts."
+          bob-smith: "Let's hop on a call and walk through it."
+
+          Recommendation: alex-chen for correctness rigor.
+```
+
+Также поддерживает **симуляцию принятия решений** — наблюдайте, как два тиммейта спорят о техническом решении в характере.
+
+---
+
+## Экспорт и обмен
+
+Экспортируйте тиммейтов как портативные пакеты:
+
+```bash
+/export-teammate alex-chen
+# → alex-chen.teammate.tar.gz (только файлы Skill, без сырых данных)
+
+# Импорт на другой машине:
+tar xzf alex-chen.teammate.tar.gz -C ./teammates/
+```
+
+Экспорт включает: SKILL.md, work.md, persona.md, meta.json, историю версий и манифест.
+Сырые файлы знаний по умолчанию исключены — добавьте `--include-knowledge` при необходимости (⚠️ содержит персональные данные).
+
+---
+
 ## Структура проекта
 
 Проект следует открытому стандарту [AgentSkills](https://agentskills.io):
@@ -213,7 +288,9 @@ create-teammate/
 │   ├── work_builder.md       #   Шаблон генерации work.md
 │   ├── persona_builder.md    #   5-уровневая структура persona.md
 │   ├── merger.md             #   Логика инкрементального слияния
-│   └── correction_handler.md #   Обработчик коррекции через диалог
+│   ├── correction_handler.md #   Обработчик коррекции через диалог
+│   ├── compare.md            #   Сравнение тиммейтов бок о бок
+│   └── smoke_test.md         #   Валидация качества после создания
 ├── tools/                    # Сбор данных & управление
 │   ├── slack_collector.py    #   Автосборщик Slack (Bot Token)
 │   ├── slack_parser.py       #   Парсер JSON-экспорта Slack
@@ -224,7 +301,9 @@ create-teammate/
 │   ├── confluence_parser.py  #   Парсер экспорта Confluence
 │   ├── project_tracker_parser.py # Парсер JIRA/Linear
 │   ├── skill_writer.py       #   Управление файлами Skill
-│   └── version_manager.py    #   Архивация версий & откат
+│   ├── version_manager.py    #   Архивация версий & откат
+│   ├── privacy_guard.py      #   Сканер PII & авто-маскирование
+│   └── export.py             #   Экспорт/импорт портативных пакетов
 ├── teammates/                # Сгенерированные Skills тиммейтов
 │   └── example_alex/         #   Пример: Stripe L3 бэкенд-инженер
 ├── docs/

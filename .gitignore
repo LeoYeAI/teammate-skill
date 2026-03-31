@@ -18,16 +18,23 @@ env/
 .DS_Store
 Thumbs.db
 
-# Generated teammate skills (personal data)
+# Generated teammate skills (contains personal data — NEVER commit)
 teammates/*/
 !teammates/example_alex/
 
-# Knowledge files (personal data)
+# Knowledge files (raw personal messages/emails — NEVER commit)
 knowledge/
 
-# Config files with tokens
+# Config files with API tokens
 .teammate-skill/
+
+# Exported teammate packages
+*.teammate.tar.gz
+exports/
 
 # Temp files
 /tmp/
 *.tmp
+
+# Plan files
+plan.md

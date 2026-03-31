@@ -124,6 +124,9 @@ pip3 install -r requirements.txt
 | `/{slug}` | 调用完整 Skill（人格 + 工作能力） |
 | `/{slug}-work` | 仅工作能力 |
 | `/{slug}-persona` | 仅人格 |
+| `/compare {a} vs {b}` | 并排对比及场景模拟 |
+| `/export-teammate {slug}` | 导出可移植的 `.tar.gz` 包用于分享 |
+| `/update-teammate {slug}` | 向现有队友追加新材料 |
 | `/teammate-rollback {slug} {version}` | 回滚到之前的版本 |
 | `/delete-teammate {slug}` | 删除队友 Skill |
 
@@ -199,6 +202,78 @@ teammate.skill    ❯ No. We get the tests right or we don't ship. If Friday
 
 ---
 
+## 质量保障
+
+每个队友在交付前都会经过 **3 层质量管线**：
+
+### 1. 质量门禁（预览前）
+根据 7 条硬性规则验证生成内容：Layer 0 具体性、示例数量、口头禅密度、优先级排序、范围定义、无通用填充、标签→规则完整性。不合格项会在你看到预览之前自动修复。
+
+### 2. 冒烟测试（创建后）
+三个自动化测试提示针对每个生成的 Skill 运行：
+- **领域问题** — Skill 是否使用真实系统/工具，而非泛泛建议？
+- **施压场景** — 人格在压力下是否保持一致，还是退化为通用 AI？
+- **超范围问题** — Skill 是否以本人风格承认知识边界？
+
+```
+🧪 Smoke Test: ✅ Domain ✅ Pushback ✅ Out-of-scope — 3/3 passed
+```
+
+### 3. 隐私扫描（导出前）
+自动检测邮箱、电话号码、API Token、社会安全号码及其他个人身份信息：
+```bash
+python3 tools/privacy_guard.py --scan teammates/alex-chen/          # 检测
+python3 tools/privacy_guard.py --scan teammates/alex-chen/ --redact  # 自动修复
+```
+
+原始知识文件（`knowledge/`）默认不会被纳入 git 和导出。
+
+---
+
+## 队友对比
+
+并排对比及场景模拟：
+
+```
+You    ❯  /compare alex-chen vs bob-smith
+
+Agent  ❯  ━━━ alex-chen vs bob-smith ━━━
+                         alex-chen              bob-smith
+          Priority:      Correctness > Speed    Ship fast > Perfect
+          CR Style:      Blocking on naming     Suggestions only
+          Under Pressure: Gets quieter           Gets louder
+          Says "No" by:  Direct refusal          Asking questions
+
+You    ❯  Who should review the payments API redesign?
+
+Agent  ❯  alex-chen: "Send me the design doc. I want to check
+             idempotency and error contracts."
+          bob-smith: "Let's hop on a call and walk through it."
+
+          Recommendation: alex-chen for correctness rigor.
+```
+
+还支持 **决策模拟** — 观看两个队友以本人风格就技术决策展开辩论。
+
+---
+
+## 导出与分享
+
+将队友导出为可移植包：
+
+```bash
+/export-teammate alex-chen
+# → alex-chen.teammate.tar.gz（仅 Skill 文件，不含原始数据）
+
+# 在另一台机器上导入：
+tar xzf alex-chen.teammate.tar.gz -C ./teammates/
+```
+
+导出包含：SKILL.md、work.md、persona.md、meta.json、版本历史和清单文件。
+原始知识文件默认不包含 — 如需包含请添加 `--include-knowledge`（⚠️ 包含个人身份信息）。
+
+---
+
 ## 项目结构
 
 本项目遵循 [AgentSkills](https://agentskills.io) 开放标准：
@@ -213,7 +288,9 @@ create-teammate/
 │   ├── work_builder.md       #   work.md 生成模板
 │   ├── persona_builder.md    #   persona.md 5 层结构
 │   ├── merger.md             #   增量合并逻辑
-│   └── correction_handler.md #   对话纠正处理器
+│   ├── correction_handler.md #   对话纠正处理器
+│   ├── compare.md            #   并排队友对比
+│   └── smoke_test.md         #   创建后质量验证
 ├── tools/                    # 数据采集 & 管理
 │   ├── slack_collector.py    #   Slack 自动采集器（Bot Token）
 │   ├── slack_parser.py       #   Slack 导出 JSON 解析器
@@ -224,7 +301,9 @@ create-teammate/
 │   ├── confluence_parser.py  #   Confluence 导出解析器
 │   ├── project_tracker_parser.py # JIRA/Linear 解析器
 │   ├── skill_writer.py       #   Skill 文件管理
-│   └── version_manager.py    #   版本存档 & 回滚
+│   ├── version_manager.py    #   版本存档 & 回滚
+│   ├── privacy_guard.py      #   PII 扫描器 & 自动脱敏
+│   └── export.py             #   可移植包导出/导入
 ├── teammates/                # 生成的队友 Skill
 │   └── example_alex/         #   示例：Stripe L3 后端工程师
 ├── docs/

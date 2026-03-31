@@ -1,6 +1,6 @@
 <div align="center">
 
-# teammate.skill
+<h1><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=50&duration=3000&pause=1000&color=6C63FF&center=true&vCenter=true&width=600&height=80&lines=teammate.skill" alt="teammate.skill" /></h1>
 
 > *Your teammate left. Their context didn't have to.*
 
